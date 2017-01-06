@@ -1,6 +1,7 @@
 ﻿// En savoir plus sur F# sur le site http://fsharp.org
 // Voir le projet 'Didacticiel F#' pour obtenir de l'aide.
 open System
+open System.Linq
 
 type Symbol =
     | Cross
@@ -16,26 +17,32 @@ type Move = {
     Symbol: Symbol
 }
 
-type Board(array) =
+type Board(array:Symbol option[]) =
     let mutable array = array
+    let offset = 3
+
+    let get x y =         
+        array.[x + y * offset]
 
     let printPlayer(symbol:Symbol option) = 
         match symbol with
         | None -> ' '
         | Some(value) -> value.Print()  
 
-    new() = Board(Array2D.create 3 3 None)
+    new() = Board(Array.create 9 None)
+
     member this.Move(move:Move) = 
-        let newArray = Array2D.copy array
-        Array2D.set newArray move.X move.Y (Some move.Symbol)
+        let newArray = Array.copy array
+        Array.set newArray (move.X + move.Y * offset) (Some move.Symbol)
         new Board(newArray)
+
     member this.Print() =
         printfn ""
-        printfn " %c | %c | %c" (printPlayer array.[0, 0]) (printPlayer array.[0, 1]) (printPlayer array.[0, 2])
+        printfn " %c | %c | %c" (printPlayer (get 0 0)) (printPlayer (get 0 1)) (printPlayer (get 0 2))
         printfn " ---------"
-        printfn " %c | %c | %c" (printPlayer array.[1, 0]) (printPlayer array.[1, 1]) (printPlayer array.[1, 2])
+        printfn " %c | %c | %c" (printPlayer (get 1 0)) (printPlayer (get 1 1)) (printPlayer (get 1 2))
         printfn " ---------"
-        printfn " %c | %c | %c" (printPlayer array.[2, 0]) (printPlayer array.[2, 1]) (printPlayer array.[2, 2])
+        printfn " %c | %c | %c" (printPlayer (get 2 0)) (printPlayer (get 2 1)) (printPlayer (get 2 2))
     
 type IPlayer =
     abstract member Symbol : Symbol with get
@@ -47,7 +54,7 @@ type ConsolePlayer(symbol) =
     interface IPlayer with
         member val Symbol = _symbol
         member this.GetMove(board) = 
-            printfn "Your move, Player %c (x y) :" (_symbol.Print())
+            printfn "Your move, Player %c (row,col) :" (_symbol.Print())
             let moveConsole = Console.ReadLine().Trim().Split ','
             {
                 X = (Int32.Parse (moveConsole.[0].Trim())) - 1;
