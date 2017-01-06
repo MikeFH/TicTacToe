@@ -19,10 +19,10 @@ type Move = {
 
 type Board(array:Symbol option[]) =
     let mutable array = array
-    let offset = 3
+    let rowSize = 3
 
     let get x y =         
-        array.[x + y * offset]
+        array.[x + y * rowSize]
 
     let printPlayer(symbol:Symbol option) = 
         match symbol with
@@ -33,16 +33,21 @@ type Board(array:Symbol option[]) =
 
     member this.Move(move:Move) = 
         let newArray = Array.copy array
-        Array.set newArray (move.X + move.Y * offset) (Some move.Symbol)
+        Array.set newArray (move.X + move.Y * rowSize) (Some move.Symbol)
         new Board(newArray)
 
     member this.Print() =
         printfn ""
-        printfn " %c | %c | %c" (printPlayer (get 0 0)) (printPlayer (get 0 1)) (printPlayer (get 0 2))
-        printfn " ---------"
-        printfn " %c | %c | %c" (printPlayer (get 1 0)) (printPlayer (get 1 1)) (printPlayer (get 1 2))
-        printfn " ---------"
-        printfn " %c | %c | %c" (printPlayer (get 2 0)) (printPlayer (get 2 1)) (printPlayer (get 2 2))
+        for i in 0..rowSize - 1 do
+            printf "  "
+            for j in 0..rowSize - 1 do
+                printf "%c" (printPlayer (get i j))
+                if j <> rowSize - 1 then
+                    printf " | "
+            printfn ""
+            if i <> rowSize - 1 then
+                printfn " -----------"
+        printfn ""
     
 type IPlayer =
     abstract member Symbol : Symbol with get
