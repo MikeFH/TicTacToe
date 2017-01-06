@@ -78,7 +78,7 @@ type ConsolePlayer(symbol:Symbol) =
     let rec getMoveInternal board = 
         printfn "Your move, Player %c (row,col) :" (_symbol.Print())
         try
-            let moveConsole = Console.ReadLine().Trim().Split ','
+            let moveConsole = Console.ReadLine().Trim().Split([|' '; ','|], StringSplitOptions.RemoveEmptyEntries)
             {
                 X = (Int32.Parse (moveConsole.[0].Trim())) - 1;
                 Y = (Int32.Parse (moveConsole.[1].Trim())) - 1;
