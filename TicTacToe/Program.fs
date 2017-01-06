@@ -42,8 +42,11 @@ type Board(array:Symbol option[]) =
     new() = Board(Array.create 9 None)
 
     member this.Move(move:Move) = 
+        let position = move.X + move.Y * rowSize
+        if Option.isSome array.[position] then
+            failwith "Invalid move"
         let newArray = Array.copy array
-        Array.set newArray (move.X + move.Y * rowSize) (Some move.Symbol)
+        Array.set newArray position (Some move.Symbol)
         new Board(newArray)
 
     member this.IsPlayerWin symbol =
@@ -97,11 +100,17 @@ type Game(player1:IPlayer, player2:IPlayer) =
     let player2 = player2
     let mutable board = new Board()
     let mutable currentPlayer = player1
+    let rec makePlayerMove() =
+        try
+            let move = currentPlayer.GetMove(board)
+            board <- board.Move(move)
+        with
+            _ -> makePlayerMove()
+
     member this.Play = 
         board.Print()
         while not board.IsEndOfGame do
-            let move = currentPlayer.GetMove(board)
-            board <- board.Move(move)
+            makePlayerMove()
             board.Print()
             currentPlayer <- if currentPlayer = player1 then player2 else player1
         board.Print()
