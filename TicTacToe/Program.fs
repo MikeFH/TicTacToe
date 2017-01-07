@@ -11,9 +11,13 @@ type Symbol =
             | Cross -> 'X'
             | Circle -> 'O'
 
-type Move = {
+type Position = {
     X: int;
     Y: int;
+}
+
+type Move = {
+    Position: Position
     Symbol: Symbol
 }
 
@@ -42,7 +46,7 @@ type Board(array:Symbol option[]) =
     new() = Board(Array.create 9 None)
 
     member this.Move(move:Move) = 
-        let position = move.X + move.Y * rowSize
+        let position = move.Position.X + move.Position.Y * rowSize
         if Option.isSome array.[position] then
             failwith "Invalid move"
         let newArray = Array.copy array
@@ -57,6 +61,22 @@ type Board(array:Symbol option[]) =
         
     member this.IsFull =
         array.All(fun e -> Option.isSome e)
+
+    member this.GetAllPossibleMoves() =
+        seq {
+            for i in 0..array.Length - 1 do
+            if (Option.isNone array.[i]) then
+                yield { X = i % rowSize; Y = (int)(i / rowSize) }
+        }
+
+    member this.Evaluate (symbol:Symbol) =
+        let otherPlayerSymbol = if symbol = Circle then Cross else Circle
+        if this.IsPlayerWin symbol then
+            10
+        else if this.IsPlayerWin otherPlayerSymbol then
+            -10
+        else
+            5            
 
     member this.Print() =
         printfn ""
@@ -83,8 +103,7 @@ type ConsolePlayer(symbol:Symbol) =
         try
             let moveConsole = Console.ReadLine().Trim().Split([|' '; ','|], StringSplitOptions.RemoveEmptyEntries)
             {
-                X = (Int32.Parse (moveConsole.[0].Trim())) - 1;
-                Y = (Int32.Parse (moveConsole.[1].Trim())) - 1;
+                Position = { X = (Int32.Parse (moveConsole.[0].Trim())) - 1; Y = (Int32.Parse (moveConsole.[1].Trim())) - 1 };
                 Symbol = _symbol
             }
         with
@@ -93,7 +112,43 @@ type ConsolePlayer(symbol:Symbol) =
     interface IPlayer with
         member val Symbol = _symbol
         member this.GetMove(board) = getMoveInternal board
+        
+        
+ type AIPlayer(symbol:Symbol) =
+    let _symbol = symbol
+
+    let rec getMoveInternal (board:Board) (move:Move) (playerSymbol:Symbol) = 
+        let boardWithMove = board.Move move
+        let possibleMoves = boardWithMove.GetAllPossibleMoves()
+
+        if not(possibleMoves.Any()) then
+            (boardWithMove.Evaluate(playerSymbol), move)
+        else
+            let newPlayerSymbol = if playerSymbol = Circle then Cross else Circle
+            let evaluatedMoves = seq {
+                for position in possibleMoves do
+                let move = { Position = position; Symbol = playerSymbol }
+                yield getMoveInternal boardWithMove move newPlayerSymbol
+            }
             
+            let minMax = if newPlayerSymbol = _symbol then min else max
+            let mutable bestEvaluatedMove = evaluatedMoves.First()
+            for currentEvaluatedMove in evaluatedMoves do
+                if (minMax (fst bestEvaluatedMove) (fst currentEvaluatedMove)) <> (fst bestEvaluatedMove) then
+                    bestEvaluatedMove <- currentEvaluatedMove
+            bestEvaluatedMove
+            
+
+    interface IPlayer with
+        member val Symbol = _symbol
+        member x.GetMove(board: Board): Move = 
+            let position = board.GetAllPossibleMoves().First()
+            printfn "Playing %A %A" (position.X + 1) (position.Y + 1)
+            {
+                Position = position;
+                Symbol = _symbol
+            }       
+           
 
 type Game(player1:IPlayer, player2:IPlayer) =
     let player1 = player1
@@ -113,13 +168,12 @@ type Game(player1:IPlayer, player2:IPlayer) =
             makePlayerMove()
             board.Print()
             currentPlayer <- if currentPlayer = player1 then player2 else player1
-        board.Print()
         printfn "End game"
         
 
 [<EntryPoint>]
 let main argv = 
-    let g = new Game(new ConsolePlayer(Circle), new ConsolePlayer(Cross))
+    let g = new Game(new ConsolePlayer(Circle), new AIPlayer(Cross))
     g.Play
     ignore(Console.ReadLine())
     0 // retourne du code de sortie entier
