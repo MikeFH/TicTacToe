@@ -4,6 +4,10 @@ open System.Linq
 type Symbol = 
     | Cross
     | Circle
+    member this.GetOtherPlayerSymbol() =
+        match this with
+        | Cross -> Circle
+        | Circle -> Cross
     override this.ToString() = 
         match this with
         | Cross -> "X"
@@ -79,17 +83,6 @@ type Board(array : Symbol option []) =
                             Y = (int) (i / Board.RowSize) }
         }
     
-    // returns the score of the board for the specified player
-    member this.Evaluate(symbol : Symbol) = 
-        let otherPlayerSymbol = 
-            if symbol = Circle then Cross
-            else Circle
-
-        // very simple scores since we know the AIPlayer will explore the complete tree of possibilities
-        if this.IsPlayerWin symbol then 1000
-        else if this.IsPlayerWin otherPlayerSymbol then -1000
-        else 0
-    
     // prints the board
     member this.Print() = 
         printfn ""
@@ -133,16 +126,28 @@ type ConsolePlayer(symbol : Symbol) =
 // Computer player
 type AIPlayer(symbol : Symbol) = 
     let _symbol = symbol
-    
+
+    // compute the score of the board for the specified player
+    let evaluateBoard (board : Board) (playerSymbol : Symbol) (depth : int) =
+        let otherPlayerSymbol = playerSymbol.GetOtherPlayerSymbol()
+
+        // very simple scores since we know the AIPlayer will explore the complete tree of possibilities
+        if board.IsPlayerWin symbol then 
+            100 - depth
+        else if board.IsPlayerWin otherPlayerSymbol then 
+            -100 + depth
+        else 
+            0
+
     // main AI logic
     let rec getMoveInternalFull (board : Board) (move : Move) (playerSymbol : Symbol) (depth : int) = 
         let boardWithMove = board.Move move
-        if boardWithMove.IsEndOfGame() then boardWithMove.Evaluate(playerSymbol) - depth
+        if boardWithMove.IsEndOfGame() then 
+            ((evaluateBoard boardWithMove playerSymbol depth), move)
         else 
-            let newPlayerSymbol = 
-                if playerSymbol = Circle then Cross
-                else Circle
+            let newPlayerSymbol = playerSymbol.GetOtherPlayerSymbol()
             fst (getMoveInternal boardWithMove newPlayerSymbol (depth + 1))
+
     and getMoveInternal (board : Board) (playerSymbol : Symbol) (depth : int) = 
         let possibleMoves = board.GetAllPossibleMoves()
         
@@ -156,8 +161,8 @@ type AIPlayer(symbol : Symbol) =
             }
         
         let minMax = 
-            if playerSymbol = _symbol then min
-            else max
+            if playerSymbol = _symbol then max
+            else min
         
         let mutable bestEvaluatedMove = evaluatedMoves.First()
         for currentEvaluatedMove in evaluatedMoves do
