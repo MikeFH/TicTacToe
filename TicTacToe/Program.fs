@@ -72,11 +72,11 @@ type Board(array:Symbol option[]) =
     member this.Evaluate (symbol:Symbol) =
         let otherPlayerSymbol = if symbol = Circle then Cross else Circle
         if this.IsPlayerWin symbol then
-            10
+            1000
         else if this.IsPlayerWin otherPlayerSymbol then
-            -10
+            -1000
         else
-            5            
+            0        
 
     member this.Print() =
         printfn ""
@@ -117,21 +117,21 @@ type ConsolePlayer(symbol:Symbol) =
  type AIPlayer(symbol:Symbol) =
     let _symbol = symbol
 
-    let rec getMoveInternalFull (board:Board) (move:Move) (playerSymbol:Symbol) =
+    let rec getMoveInternalFull (board:Board) (move:Move) (playerSymbol:Symbol) (depth:int) =
         let boardWithMove = board.Move move
         if boardWithMove.IsEndOfGame() then
-            boardWithMove.Evaluate(playerSymbol)
+            boardWithMove.Evaluate(playerSymbol) - depth
         else
             let newPlayerSymbol = if playerSymbol = Circle then Cross else Circle
-            fst (getMoveInternal boardWithMove newPlayerSymbol)
+            fst (getMoveInternal boardWithMove newPlayerSymbol (depth + 1))
 
-    and getMoveInternal (board:Board) (playerSymbol:Symbol) = 
+    and getMoveInternal (board:Board) (playerSymbol:Symbol) (depth:int) = 
         let possibleMoves = board.GetAllPossibleMoves()
 
         let evaluatedMoves = seq {
             for position in possibleMoves do
             let move = { Position = position; Symbol = playerSymbol }
-            yield (getMoveInternalFull board move playerSymbol), move
+            yield (getMoveInternalFull board move playerSymbol depth), move
         }
             
         let minMax = if playerSymbol = _symbol then min else max
@@ -144,7 +144,7 @@ type ConsolePlayer(symbol:Symbol) =
     interface IPlayer with
         member val Symbol = _symbol
         member x.GetMove(board: Board): Move = 
-            let move = snd (getMoveInternal board _symbol)
+            let move = snd (getMoveInternal board _symbol 0)
             printfn "Playing %A %A" (move.Position.X + 1) (move.Position.Y + 1)
             move
 
