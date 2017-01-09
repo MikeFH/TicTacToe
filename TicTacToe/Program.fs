@@ -117,38 +117,36 @@ type ConsolePlayer(symbol:Symbol) =
  type AIPlayer(symbol:Symbol) =
     let _symbol = symbol
 
-    let rec getMoveInternal (board:Board) (move:Move) (playerSymbol:Symbol) = 
+    let rec getMoveInternalFull (board:Board) (move:Move) (playerSymbol:Symbol) =
         let boardWithMove = board.Move move
-        let possibleMoves = boardWithMove.GetAllPossibleMoves()
-
-        if not(possibleMoves.Any()) then
-            (boardWithMove.Evaluate(playerSymbol), move)
+        if boardWithMove.IsEndOfGame() then
+            boardWithMove.Evaluate(playerSymbol)
         else
             let newPlayerSymbol = if playerSymbol = Circle then Cross else Circle
-            let evaluatedMoves = seq {
-                for position in possibleMoves do
-                let move = { Position = position; Symbol = playerSymbol }
-                yield getMoveInternal boardWithMove move newPlayerSymbol
-            }
+            fst (getMoveInternal boardWithMove newPlayerSymbol)
+
+    and getMoveInternal (board:Board) (playerSymbol:Symbol) = 
+        let possibleMoves = board.GetAllPossibleMoves()
+
+        let evaluatedMoves = seq {
+            for position in possibleMoves do
+            let move = { Position = position; Symbol = playerSymbol }
+            yield (getMoveInternalFull board move playerSymbol), move
+        }
             
-            let minMax = if newPlayerSymbol = _symbol then min else max
-            let mutable bestEvaluatedMove = evaluatedMoves.First()
-            for currentEvaluatedMove in evaluatedMoves do
-                if (minMax (fst bestEvaluatedMove) (fst currentEvaluatedMove)) <> (fst bestEvaluatedMove) then
-                    bestEvaluatedMove <- currentEvaluatedMove
-            bestEvaluatedMove
-            
+        let minMax = if playerSymbol = _symbol then min else max
+        let mutable bestEvaluatedMove = evaluatedMoves.First()
+        for currentEvaluatedMove in evaluatedMoves do
+            if (minMax (fst bestEvaluatedMove) (fst currentEvaluatedMove)) <> (fst bestEvaluatedMove) then
+                bestEvaluatedMove <- currentEvaluatedMove
+        bestEvaluatedMove            
 
     interface IPlayer with
         member val Symbol = _symbol
         member x.GetMove(board: Board): Move = 
-            let position = board.GetAllPossibleMoves().First()
-            printfn "Playing %A %A" (position.X + 1) (position.Y + 1)
-            {
-                Position = position;
-                Symbol = _symbol
-            }       
-           
+            let move = snd (getMoveInternal board _symbol)
+            printfn "Playing %A %A" (move.Position.X + 1) (move.Position.Y + 1)
+            move
 
 type Game(player1:IPlayer, player2:IPlayer) =
     let player1 = player1
