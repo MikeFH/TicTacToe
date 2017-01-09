@@ -171,7 +171,11 @@ type Game(player1:IPlayer, player2:IPlayer) =
 
 [<EntryPoint>]
 let main argv = 
-    let g = new Game(new ConsolePlayer(Circle), new AIPlayer(Cross))
-    g.Play
-    ignore(Console.ReadLine())
+    let mutable rematch = "y"
+    while rematch = "y" do
+        let g = new Game(new AIPlayer(Circle), new AIPlayer(Cross))
+        g.Play
+        Console.WriteLine "Rematch ?"
+        rematch <- Console.ReadLine()    
+    
     0 // retourne du code de sortie entier
