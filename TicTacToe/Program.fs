@@ -28,7 +28,7 @@ type Board(array:Symbol option[]) =
     let get x y =         
         array.[x + y * rowSize]
 
-    let getLines =
+    let getLines() =
         match array with
         | [| a; b; c; d; e; f; g; h; i;|] -> [(a, b, c); (d, e, f); (g, h, i); (a, d, g); (b, e, h); (c, g, i); (a, e, i); (c, e, g)]
         | _ -> failwith ""
@@ -54,12 +54,12 @@ type Board(array:Symbol option[]) =
         new Board(newArray)
 
     member this.IsPlayerWin symbol =
-        getLines.Any(fun line -> isLineWinForPlayer symbol line)
+        getLines().Any(fun line -> isLineWinForPlayer symbol line)
 
-    member this.IsEndOfGame = 
-        (this.IsPlayerWin Cross) || this.IsPlayerWin Circle || this.IsFull
+    member this.IsEndOfGame() = 
+        (this.IsPlayerWin Cross) || this.IsPlayerWin Circle || this.IsFull()
         
-    member this.IsFull =
+    member this.IsFull() =
         array.All(fun e -> Option.isSome e)
 
     member this.GetAllPossibleMoves() =
@@ -164,7 +164,7 @@ type Game(player1:IPlayer, player2:IPlayer) =
 
     member this.Play = 
         board.Print()
-        while not board.IsEndOfGame do
+        while not(board.IsEndOfGame()) do
             makePlayerMove()
             board.Print()
             currentPlayer <- if currentPlayer = player1 then player2 else player1
